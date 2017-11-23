@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,8 +21,11 @@ public class Conexion {
     XMLInputFactory fic = XMLInputFactory.newInstance();
     XMLStreamReader sr;
     PreparedStatement ps;
+    PreparedStatement ps1;
     String datos[] = new String[4];
-    //ResulSet rs;
+    String insert[] = new String[3];
+    ResultSet rs;
+    String codigo[] = new String[1];
     public void conexion() {
 
         String driver = "jdbc:oracle:thin:";
@@ -53,14 +57,15 @@ public class Conexion {
                   case XMLStreamReader.START_DOCUMENT:
                         break;
                   case XMLStreamReader.START_ELEMENT:
-                        System.out.println(sr.getLocalName());
+                      
                         
                    if(sr.getAttributeCount() >0) {
-                   System.out.println(sr.getAttributeName(0) + " = " + sr.getAttributeValue(0));
                   
+                  codigo[0]=sr.getAttributeValue(0);
                         }
                    if(sr.getLocalName()=="tipo"){
                       datos[0]=sr.getElementText();
+                     
                    }
                    if(sr.getLocalName()=="acidez"){
                       datos[1]=sr.getElementText();
@@ -79,13 +84,32 @@ public class Conexion {
                   case XMLStreamReader.END_ELEMENT:
                     if(sr.getLocalName()=="analise"){
                  ps = conn.prepareStatement("SELECT nomeu,acidezmin,acidezmax from uvas where tipo = '"+datos[0]+"'");
+                 ps1 = conn.prepareStatement("insert into xerado(num,nomeuva,tratacidez,total)values(?,?,?,?)");
+                 rs = ps.executeQuery();
+                 rs.next();
+                 
+                 insert[0]=rs.getString("nomeu");
+                 insert[1]=rs.getString("acidezmin");
+                 insert[2]=rs.getString("acidezmax");
+                 ps1.setString(1,codigo[0]);
+                 ps1.setString(2,insert[0]);
+                 if(Integer.parseInt(datos[1])<Integer.parseInt(insert[1])){
+                 ps1.setString(3,"Subir acidez");
+                    }else if(Integer.parseInt(datos[1])>Integer.parseInt(insert[2])){  
+                 ps1.setString(3,"Bajar acidez");
+                }else{
+                 ps1.setString(3,"Equilibrada");
+                    }
+                 int cuenta = Integer.parseInt(datos[2])*15;
+                 ps1.setInt(4,cuenta);
+                 ps1.executeUpdate();
                         
-                        
-                    }  
-                    
+                   
+                    }
+                 break;
                 }
-            }
-            
+                
+                }
         } catch (XMLStreamException ex) {
             Logger.getLogger(Conexion.class.getName()).log(Level.SEVERE, null, ex);
         } catch (FileNotFoundException ex) {
@@ -94,7 +118,7 @@ public class Conexion {
             Logger.getLogger(Conexion.class.getName()).log(Level.SEVERE, null, ex);
         } 
         
-        
+     
     }
     
     
